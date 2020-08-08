@@ -95,8 +95,7 @@ module.exports = function (RED) {
          */
 
         var conn = new google.auth.GoogleAuth({
-          keyFile: '/path/to/your-secret-key.json',
-          scopes: ['https://www.googleapis.com/auth/cloud-platform'],
+          keyFile: '/path/to/your-secret-key.json'
         });
 
         node.conn = conn;
@@ -116,6 +115,7 @@ module.exports = function (RED) {
       apiKey: { type: 'password' },
       clientId: { type: 'password' },
       clientSecret: { type: 'password' },
+      scopes: { type: 'text' },
       accessToken: { type: 'password' },
       refreshToken: { type: 'password' },
       userId: { type: 'text' }
@@ -144,7 +144,7 @@ module.exports = function (RED) {
     var id = req.query.id;
     var googleConfig = RED.nodes.getNode(id);
 
-    var clientId, clientSecret;
+    var clientId, clientSecret, scopes;
     if (googleConfig && googleConfig.credentials && googleConfig.credentials.clientId) {
       clientId = googleConfig.credentials.clientId;
     } else {
@@ -155,12 +155,18 @@ module.exports = function (RED) {
     } else {
       clientSecret = req.query.clientSecret;
     }
+    if (googleConfig && googleConfig.credentials && googleConfig.credentials.scopes) {
+      scopes = googleConfig.credentials.scopes;
+    } else {
+      scopes = req.query.scopes;
+    }
 
     var credentials = {
       id: id,
       loginType: 'oauth',
       clientId: clientId,
       clientSecret: clientSecret,
+      scopes: scopes,
       redirectUri: req.query.callback
     };
 
@@ -175,9 +181,7 @@ module.exports = function (RED) {
     var authUrl = oauth2.generateAuthUrl({
       access_type: 'offline',
       prompt: 'consent',
-      scope: [
-        'https://www.googleapis.com/auth/classroom.courses'
-      ]
+      scope: scopes.split(',')
     });
     if (req.query.username) authUrl = authUrl + '&login_hint=' + req.query.username;
 
@@ -218,6 +222,7 @@ module.exports = function (RED) {
       loginType: 'oauth',
       clientId: credentials.clientId,
       clientSecret: credentials.clientSecret,
+      scopes: credentials.scopes,
       redirectUri: credentials.redirectUri,
       accessToken: tokens.access_token,
       refreshToken: tokens.refresh_token,
